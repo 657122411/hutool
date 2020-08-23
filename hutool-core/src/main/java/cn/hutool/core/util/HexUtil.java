@@ -1,6 +1,7 @@
 package cn.hutool.core.util;
 
 import java.awt.Color;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 
 /**
@@ -35,14 +36,15 @@ public class HexUtil {
 		final int index = (value.startsWith("-") ? 1 : 0);
 		if (value.startsWith("0x", index) || value.startsWith("0X", index) || value.startsWith("#", index)) {
 			try {
+				//noinspection ResultOfMethodCallIgnored
 				Long.decode(value);
 			} catch (NumberFormatException e) {
 				return false;
 			}
 			return true;
-		} else {
-			return false;
 		}
+
+		return false;
 	}
 
 	// ---------------------------------------------------------------------------------------------------- encode
@@ -90,9 +92,9 @@ public class HexUtil {
 	}
 
 	/**
-	 * 将字节数组转换为十六进制字符串，结果为小写
+	 * 将字符串转换为十六进制字符串，结果为小写
 	 *
-	 * @param data    被编码的字符串
+	 * @param data    需要被编码的字符串
 	 * @param charset 编码
 	 * @return 十六进制String
 	 */
@@ -101,7 +103,7 @@ public class HexUtil {
 	}
 
 	/**
-	 * 将字节数组转换为十六进制字符串，结果为小写，默认编码是UTF-8
+	 * 将字符串转换为十六进制字符串，结果为小写，默认编码是UTF-8
 	 *
 	 * @param data 被编码的字符串
 	 * @return 十六进制String
@@ -197,6 +199,7 @@ public class HexUtil {
 		if (StrUtil.isEmpty(hexStr)) {
 			return null;
 		}
+		hexStr = StrUtil.removeAll(hexStr, ' ');
 		return decodeHex(hexStr.toCharArray());
 	}
 
@@ -335,6 +338,19 @@ public class HexUtil {
 		int low = b & 0x0f;//低位
 		builder.append(toDigits[high]);
 		builder.append(toDigits[low]);
+	}
+
+	/**
+	 * Hex（16进制）字符串转为BigInteger
+	 * @param hexStr Hex(16进制字符串)
+	 * @return {@link BigInteger}
+	 * @since 5.2.0
+	 */
+	public static BigInteger toBigInteger(String hexStr){
+		if(null == hexStr){
+			return null;
+		}
+		return new BigInteger(hexStr, 16);
 	}
 
 	// ---------------------------------------------------------------------------------------- Private method start
