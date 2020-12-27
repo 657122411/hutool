@@ -21,13 +21,7 @@ import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
@@ -129,11 +123,10 @@ public class DateUtil extends CalendarUtil {
 	/**
 	 * 当前时间的时间戳
 	 *
-	 * @param isNano 是否为高精度时间
 	 * @return 时间
 	 */
-	public static long current(boolean isNano) {
-		return isNano ? System.nanoTime() : System.currentTimeMillis();
+	public static long current() {
+		return System.currentTimeMillis();
 	}
 
 	/**
@@ -220,9 +213,14 @@ public class DateUtil extends CalendarUtil {
 
 	/**
 	 * 获得指定日期是所在年份的第几周<br>
+	 * 此方法返回值与一周的第一天有关，比如：<br>
+	 * 2016年1月3日为周日，如果一周的第一天为周日，那这天是第二周（返回2）<br>
+	 * 如果一周的第一天为周一，那这天是第一周（返回1）<br>
+	 * 跨年的那个星期得到的结果总是1
 	 *
 	 * @param date 日期
 	 * @return 周
+	 * @see DateTime#setFirstDayOfWeek(Week)
 	 */
 	public static int weekOfYear(Date date) {
 		return DateTime.of(date).weekOfYear();
@@ -821,10 +819,10 @@ public class DateUtil extends CalendarUtil {
 		int length = utcString.length();
 		if (StrUtil.contains(utcString, 'Z')) {
 			if (length == DatePattern.UTC_PATTERN.length() - 4) {
-				// 格式类似：2018-09-13T05:34:31Z
+				// 格式类似：2018-09-13T05:34:31Z，-4表示减去4个单引号的长度
 				return parse(utcString, DatePattern.UTC_FORMAT);
 			} else if (length == DatePattern.UTC_MS_PATTERN.length() - 4) {
-				// 格式类似：2018-09-13T05:34:31.999Z
+				// 格式类似：2018-09-13T05:34:31.999Z，-4表示减去4个单引号的长度
 				return parse(utcString, DatePattern.UTC_MS_FORMAT);
 			}
 		} else {
@@ -1341,8 +1339,8 @@ public class DateUtil extends CalendarUtil {
 	 * <pre>
 	 * 有时候我们计算相差天数的时候需要忽略时分秒。
 	 * 比如：2016-02-01 23:59:59和2016-02-02 00:00:00相差一秒
-	 * 如果isReset为<code>false</code>相差天数为0。
-	 * 如果isReset为<code>true</code>相差天数将被计算为1
+	 * 如果isReset为{@code false}相差天数为0。
+	 * 如果isReset为{@code true}相差天数将被计算为1
 	 * </pre>
 	 *
 	 * @param beginDate 起始日期
@@ -1377,7 +1375,7 @@ public class DateUtil extends CalendarUtil {
 
 	/**
 	 * 计算两个日期相差月数<br>
-	 * 在非重置情况下，如果起始日期的天小于结束日期的天，月数要少算1（不足1个月）
+	 * 在非重置情况下，如果起始日期的天大于结束日期的天，月数要少算1（不足1个月）
 	 *
 	 * @param beginDate 起始日期
 	 * @param endDate   结束日期
@@ -1391,7 +1389,7 @@ public class DateUtil extends CalendarUtil {
 
 	/**
 	 * 计算两个日期相差年数<br>
-	 * 在非重置情况下，如果起始日期的月小于结束日期的月，年数要少算1（不足1年）
+	 * 在非重置情况下，如果起始日期的月大于结束日期的月，年数要少算1（不足1年）
 	 *
 	 * @param beginDate 起始日期
 	 * @param endDate   结束日期
@@ -1411,7 +1409,7 @@ public class DateUtil extends CalendarUtil {
 	 * @param level     级别，按照天、小时、分、秒、毫秒分为5个等级
 	 * @return XX天XX小时XX分XX秒
 	 */
-	public static String formatBetween(Date beginDate, Date endDate, BetweenFormater.Level level) {
+	public static String formatBetween(Date beginDate, Date endDate, BetweenFormatter.Level level) {
 		return formatBetween(between(beginDate, endDate, DateUnit.MS), level);
 	}
 
@@ -1434,8 +1432,8 @@ public class DateUtil extends CalendarUtil {
 	 * @param level     级别，按照天、小时、分、秒、毫秒分为5个等级
 	 * @return XX天XX小时XX分XX秒XX毫秒
 	 */
-	public static String formatBetween(long betweenMs, BetweenFormater.Level level) {
-		return new BetweenFormater(betweenMs, level).format();
+	public static String formatBetween(long betweenMs, BetweenFormatter.Level level) {
+		return new BetweenFormatter(betweenMs, level).format();
 	}
 
 	/**
@@ -1446,7 +1444,7 @@ public class DateUtil extends CalendarUtil {
 	 * @since 3.0.1
 	 */
 	public static String formatBetween(long betweenMs) {
-		return new BetweenFormater(betweenMs, BetweenFormater.Level.MILLISECOND).format();
+		return new BetweenFormatter(betweenMs, BetweenFormatter.Level.MILLISECOND).format();
 	}
 
 	/**
@@ -1494,6 +1492,22 @@ public class DateUtil extends CalendarUtil {
 		}
 		return CalendarUtil.isSameDay(calendar(date1), calendar(date2));
 	}
+
+	/**
+	 * 比较两个日期是否为同一月
+	 *
+	 * @param date1 日期1
+	 * @param date2 日期2
+	 * @return 是否为同一月
+	 * @since 5.4.1
+	 */
+	public static boolean isSameMonth(final Date date1, final Date date2) {
+		if (date1 == null || date2 == null) {
+			throw new IllegalArgumentException("The date must not be null");
+		}
+		return CalendarUtil.isSameMonth(calendar(date1), calendar(date2));
+	}
+
 
 	/**
 	 * 计时，常用于记录某段代码的执行时间，单位：纳秒
@@ -1898,6 +1912,18 @@ public class DateUtil extends CalendarUtil {
 	 */
 	public static int lengthOfYear(int year) {
 		return Year.of(year).length();
+	}
+
+	/**
+	 * 获得指定月份的总天数
+	 *
+	 * @param month 年份
+	 * @param isLeapYear 是否闰年
+	 * @return 天
+	 * @since 5.4.2
+	 */
+	public static int lengthOfMonth(int month, boolean isLeapYear) {
+		return java.time.Month.of(month).length(isLeapYear);
 	}
 
 	// ------------------------------------------------------------------------ Private method start

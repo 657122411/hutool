@@ -7,6 +7,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +31,7 @@ public class ThreadUtil {
 	 * @param corePoolSize 同时执行的线程数大小
 	 * @return ExecutorService
 	 */
-	public static ExecutorService newExecutor(int corePoolSize) {
+		public static ExecutorService newExecutor(int corePoolSize) {
 		ExecutorBuilder builder = ExecutorBuilder.create();
 		if (corePoolSize > 0) {
 			builder.setCorePoolSize(corePoolSize);
@@ -88,6 +89,24 @@ public class ThreadUtil {
 	}
 
 	/**
+	 * 获得一个新的线程池，并指定最大任务队列大小<br>
+	 * 如果maximumPoolSize &gt;= corePoolSize，在没有新任务加入的情况下，多出的线程将最多保留60s
+	 *
+	 * @param corePoolSize     初始线程池大小
+	 * @param maximumPoolSize  最大线程池大小
+	 * @param maximumQueueSize 最大任务队列大小
+	 * @return {@link ThreadPoolExecutor}
+	 * @since 5.4.1
+	 */
+	public static ExecutorService newExecutor(int corePoolSize, int maximumPoolSize, int maximumQueueSize) {
+		return ExecutorBuilder.create()
+				.setCorePoolSize(corePoolSize)
+				.setMaxPoolSize(maximumPoolSize)
+				.setWorkQueue(new LinkedBlockingQueue<>(maximumQueueSize))
+				.build();
+	}
+
+	/**
 	 * 获得一个新的线程池<br>
 	 * 传入阻塞系数，线程池的大小计算公式为：CPU可用核心数 / (1 - 阻塞因子)<br>
 	 * Blocking Coefficient(阻塞系数) = 阻塞时间／（阻塞时间+使用CPU的时间）<br>
@@ -125,7 +144,7 @@ public class ThreadUtil {
 	 * @param isDaemon 是否守护线程。守护线程会在主线程结束后自动结束
 	 * @return 执行的方法体
 	 */
-	public static Runnable execAsync(final Runnable runnable, boolean isDaemon) {
+	public static Runnable execAsync(Runnable runnable, boolean isDaemon) {
 		Thread thread = new Thread(runnable);
 		thread.setDaemon(isDaemon);
 		thread.start();
